@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cupcakes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Pixelify Sans', sans-serif;
+      text-align: center;
+      background: #fffbe7;
+    }
+
+    .game-area {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+      border: 2px dashed #ccc;
+      background-color: #fffbe7;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .cupcake {
+      width: 150px;
+      position: absolute;
+      top: 50px;
+      cursor: grab;
+      z-index: 2;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .box {
+      width: 320px;
+      position: absolute;
+      bottom: 50px;
+      left: 250px;
+      z-index: 1;
+    }
+
+    .chatbox {
+      position: absolute;
+      width: 120px;
+      bottom: 250px;
+      left: 480px;
+      z-index: 3;
+      transition: opacity 0.3s ease;
+    }
+
+    .chatbox2 {
+      position: absolute;
+      width: 60px;
+      bottom: 240px;
+      left: 380px;
+      z-index: 3;
+      transition: opacity 0.3s ease;
+    }
+
+    #resetBtn {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-family: 'Pixelify Sans', sans-serif;
+      background-color: #ffc0cb;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <h1>⋆｡·°ʚ🍓ɞ°‧｡⋆ </h1>
+
+  <div class="game-area">
+    <img src="box1.png" id="box" class="box" />
+    <img src="chatbox.png" id="chatbox" class="chatbox" />
+    <img src="chatbox2.png" id="chatbox2" class="chatbox2" style="opacity: 0;" />
+    <img src="cup.png" class="cupcake" draggable="true" style="left: 180px;" />
+    <img src="cup1.png" class="cupcake" draggable="true" style="left: 330px;" />
+    <img src="cup2.png" class="cupcake" draggable="true" style="left: 480px;" />
+
+    <button id="resetBtn">Reset Game</button>
+  </div>
+
+  <script>
+    const cupcakes = document.querySelectorAll('.cupcake');
+    const box = document.getElementById('box');
+    const chatbox = document.getElementById('chatbox');
+    const chatbox2 = document.getElementById('chatbox2');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let dragged = null;
+    let offsetX = 0;
+    let offsetY = 0;
+    let droppedCount = 0;
+
+    // Store initial cupcake positions to reset if needed
+    const initialPositions = [];
+    cupcakes.forEach((cupcake, i) => {
+      initialPositions[i] = { left: cupcake.offsetLeft, top: cupcake.offsetTop };
+
+      // Listen for mouse and touch drag start
+      cupcake.addEventListener('mousedown', startDrag);
+      cupcake.addEventListener('touchstart', startDrag, { passive: false });
+    });
+
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('touchmove', onDrag, { passive: false });
+
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+
+   const gameArea = document.querySelector('.game-area');
+
+function startDrag(e) {
+  e.preventDefault();
+  dragged = e.target.closest('.cupcake');
+  if (!dragged) return;
+
+  const gameAreaRect = gameArea.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  // Calculate offset relative to gameArea top-left corner
+  offsetX = clientX - dragged.offsetLeft - gameAreaRect.left;
+  offsetY = clientY - dragged.offsetTop - gameAreaRect.top;
+
+  if (chatbox) chatbox.style.opacity = 0;
+
+  dragged.style.cursor = 'grabbing';
+  dragged.style.position = 'absolute';
+  dragged.style.zIndex = 10;
+}
+
+function onDrag(e) {
+  if (!dragged) return;
+  e.preventDefault();
+
+  const gameAreaRect = gameArea.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  // Position relative to gameArea top-left corner minus offset
+  let left = clientX - gameAreaRect.left - offsetX;
+  let top = clientY - gameAreaRect.top - offsetY;
+
+  // Optional: constrain within game-area bounds
+  left = Math.max(0, Math.min(left, gameArea.clientWidth - dragged.clientWidth));
+  top = Math.max(0, Math.min(top, gameArea.clientHeight - dragged.clientHeight));
+
+  dragged.style.left = `${left}px`;
+  dragged.style.top = `${top}px`;
+}
+
+    function endDrag(e) {
+      if (!dragged) return;
+
+      const boxRect = box.getBoundingClientRect();
+      const draggedRect = dragged.getBoundingClientRect();
+
+      // Check if cupcake dropped inside the box
+      if (
+        draggedRect.left < boxRect.right &&
+        draggedRect.right > boxRect.left &&
+        draggedRect.top < boxRect.bottom &&
+        draggedRect.bottom > boxRect.top
+      ) {
+        // Move cupcake inside box, relative positioning
+        const offsetLeft = draggedRect.left - boxRect.left;
+        const offsetTop = draggedRect.top - boxRect.top;
+
+        box.appendChild(dragged);
+        dragged.style.left = `${offsetLeft}px`;
+        dragged.style.top = `${offsetTop}px`;
+        dragged.style.cursor = 'default';
+
+        droppedCount++;
+        if (droppedCount === cupcakes.length) {
+          if (chatbox2) chatbox2.style.opacity = 1;
+          resetBtn.style.display = 'block';
+        }
+      } else {
+        // If not dropped in box, reset position (optional)
+        const idx = Array.from(cupcakes).indexOf(dragged);
+        if (idx !== -1) {
+          dragged.style.left = initialPositions[idx].left + 'px';
+          dragged.style.top = initialPositions[idx].top + 'px';
+        }
+      }
+
+      dragged.style.zIndex = 2;
+      dragged = null;
+    }
+
+    resetBtn.addEventListener('click', () => {
+      // Reset cupcakes to their original positions and parent
+      cupcakes.forEach((cupcake, i) => {
+        document.querySelector('.game-area').appendChild(cupcake);
+        cupcake.style.left = initialPositions[i].left + 'px';
+        cupcake.style.top = initialPositions[i].top + 'px';
+        cupcake.style.cursor = 'grab';
+      });
+
+      // Reset state and UI
+      droppedCount = 0;
+      chatbox.style.opacity = 1;
+      chatbox2.style.opacity = 0;
+      resetBtn.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
